@@ -63,7 +63,6 @@ Item {
             weather: card.app.weather
             language: card.app.language
             locale: card.app.uiLocale
-            twelveHour: card.app.twelveHour
             u: card.u
         }
 

@@ -15,7 +15,7 @@ PlasmoidItem {
     toolTipMainText: ""
     toolTipSubText: ""
 
-    // UI language: "" follows the system, otherwise "en", "ru", "es", "de" or "el".
+    // UI language: "" follows the system, otherwise "en", "ru", "es", "de", "el" or "zh_CN".
     // Dates, month and weekday names follow it too (times keep the system/12h/24h setting).
     readonly property string language: Plasmoid.configuration.language
     readonly property var uiLocale: language === "" ? Qt.locale() : Qt.locale(language)
@@ -41,7 +41,6 @@ PlasmoidItem {
     readonly property int clockMode: Plasmoid.configuration.clockFormat
     readonly property string shortTimeFormat: clockMode === 1 ? "h:mm AP"
         : clockMode === 2 ? "HH:mm" : Qt.locale().timeFormat(Locale.ShortFormat)
-    readonly property bool twelveHour: /a/i.test(shortTimeFormat)
     readonly property string timeText: {
         let fmt = shortTimeFormat;
         if (showSeconds && fmt.indexOf("ss") < 0) {
@@ -114,7 +113,7 @@ PlasmoidItem {
     Weather {
         id: weather
         city: Plasmoid.configuration.city
-        language: root.language
+        stationId: Plasmoid.configuration.stationId
     }
     readonly property alias weather: weather
 

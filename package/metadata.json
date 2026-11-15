@@ -12,6 +12,7 @@
         "Description[el]": "Μια «νησίδα» τύπου Dynamic Island για το πάνελ: ώρα, καιρός και ημερομηνία στο hover, τι παίζει με κλικ",
         "Description[es]": "Una píldora al estilo Dynamic Island para el panel: la hora, el tiempo y la fecha al pasar el ratón y lo que suena al hacer clic",
         "Description[ru]": "«Динамический остров» для панели: время, при наведении погода и дата, по клику что сейчас играет",
+        "Description[zh_CN]": "面板上的动态岛风格胶囊：悬停显示时间、天气和日期，点击显示正在播放的内容",
         "Icon": "preferences-system-time",
         "Id": "io.github.luminarysrc.plasmaisland",
         "License": "GPL-3.0-or-later",

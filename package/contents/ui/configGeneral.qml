@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
@@ -8,14 +9,21 @@ KCM.SimpleKCM {
 
     // "" follows the system language; otherwise one of languageCodes below.
     property string cfg_language
-    property alias cfg_city: cityField.text
+    property string cfg_city
+    property string cfg_stationId
     property alias cfg_showSeconds: secondsBox.checked
     property int cfg_clockFormat
     property int cfg_dateFormat
     property alias cfg_size: sizeBox.value
     property alias cfg_showTrackToast: toastBox.checked
 
-    readonly property var languageCodes: ["", "en", "ru", "es", "de", "el"]
+    // City search: settingCity suppresses the text handler while the field is filled in code.
+    property bool settingCity: false
+    property bool searchDone: false
+    property bool ready: false
+    property int searchSeq: 0
+
+    readonly property var languageCodes: ["", "en", "ru", "es", "de", "el", "zh_CN"]
     readonly property var loc: cfg_language === "" ? Qt.locale() : Qt.locale(cfg_language)
 
     // The page itself switches language as soon as one is chosen.
@@ -31,6 +39,7 @@ KCM.SimpleKCM {
         ListElement { label: "Español" }
         ListElement { label: "Deutsch" }
         ListElement { label: "Ελληνικά" }
+        ListElement { label: "简体中文" }
     }
     ListModel {
         id: clockModel
@@ -48,12 +57,72 @@ KCM.SimpleKCM {
         ListElement { label: "" }
         ListElement { label: "" }
     }
+    ListModel {
+        id: cityResults
+    }
+    Timer {
+        id: citySearchTimer
+        interval: 300
+        onTriggered: page.searchCities()
+    }
 
     // A ComboBox keeps showing the old text of its current item when that item's label changes;
     // clearing and re-binding the index makes it read the new one.
     function refreshBox(box, valueFn) {
         box.currentIndex = -1;
         box.currentIndex = Qt.binding(valueFn);
+    }
+
+    function searchCities() {
+        const query = citySearch.text.trim();
+        if (query === "") {
+            cityResults.clear();
+            page.searchDone = false;
+            return;
+        }
+        const seq = ++page.searchSeq;
+        const stamp = Date.now();
+        const xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = () => {
+            if (xhr.readyState !== XMLHttpRequest.DONE || seq !== page.searchSeq) {
+                return;
+            }
+            cityResults.clear();
+            page.searchDone = true;
+            if (xhr.status !== 200) {
+                return;
+            }
+            let data = null;
+            try {
+                data = JSON.parse(xhr.responseText);
+            } catch (e) {
+                return;
+            }
+            if (!data || data.code !== 0 || !Array.isArray(data.data)) {
+                return;
+            }
+            for (const item of data.data) {
+                const parts = typeof item === "string" ? item.split("|") : [];
+                if (parts.length >= 6) {
+                    cityResults.append({ stationId: parts[0], city: parts[1], province: parts[2] });
+                }
+            }
+        };
+        xhr.open("GET", "https://www.nmc.cn/essearch/api/autocomplete?q=" + encodeURIComponent(query)
+                 + "&limit=10&timestamp=" + stamp + "&_=" + stamp);
+        xhr.send();
+    }
+
+    function selectCity(stationId, city) {
+        page.settingCity = true;
+        citySearch.text = city;
+        page.settingCity = false;
+        page.cfg_city = city;
+        page.cfg_stationId = stationId;
+        page.searchDone = false;
+        page.searchSeq++;
+        citySearchTimer.stop();
+        cityResults.clear();
     }
 
     function retranslate() {
@@ -71,9 +140,24 @@ KCM.SimpleKCM {
         refreshBox(clockBox, () => page.cfg_clockFormat);
         refreshBox(dateBox, () => page.cfg_dateFormat);
     }
-    Component.onCompleted: retranslate()
+    Component.onCompleted: {
+        page.settingCity = true;
+        citySearch.text = page.cfg_city;
+        page.settingCity = false;
+        page.ready = true;
+        retranslate();
+    }
     // Deferred: this handler can run before `t` and `loc` have picked up the new language.
     onCfg_languageChanged: Qt.callLater(retranslate)
+    // Reflect external changes (e.g. the Reset button) while the field is not being edited.
+    onCfg_cityChanged: {
+        if (!page.ready || citySearch.activeFocus || citySearch.text === page.cfg_city) {
+            return;
+        }
+        page.settingCity = true;
+        citySearch.text = page.cfg_city;
+        page.settingCity = false;
+    }
 
     Kirigami.FormLayout {
         QQC2.ComboBox {
@@ -85,15 +169,60 @@ KCM.SimpleKCM {
             onActivated: index => page.cfg_language = page.languageCodes[index]
         }
 
-        QQC2.TextField {
-            id: cityField
+        ColumnLayout {
+            Layout.fillWidth: true
             Kirigami.FormData.label: t.tr("Weather city:")
-            placeholderText: t.tr("e.g. Berlin")
-        }
-        QQC2.Label {
-            text: t.tr("Without a city, the pill shows “Set city” instead of the temperature.")
-            opacity: 0.7
-            font: Kirigami.Theme.smallFont
+
+            QQC2.TextField {
+                id: citySearch
+                Layout.fillWidth: true
+                placeholderText: t.tr("Search a city…")
+                onTextChanged: {
+                    if (page.settingCity) {
+                        return;
+                    }
+                    page.cfg_city = text;
+                    page.cfg_stationId = "";
+                    page.searchDone = false;
+                    page.searchSeq++;
+                    if (text.trim() === "") {
+                        cityResults.clear();
+                        citySearchTimer.stop();
+                    } else {
+                        citySearchTimer.restart();
+                    }
+                }
+            }
+            QQC2.Label {
+                Layout.fillWidth: true
+                visible: page.searchDone && cityResults.count === 0
+                text: t.tr("No matching city")
+                opacity: 0.7
+                font: Kirigami.Theme.smallFont
+            }
+            ListView {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Math.min(cityResults.count, 5) * Kirigami.Units.gridUnit * 2
+                visible: cityResults.count > 0
+                clip: true
+                model: cityResults
+                delegate: QQC2.ItemDelegate {
+                    required property string stationId
+                    required property string city
+                    required property string province
+                    width: ListView.view.width
+                    text: city + " · " + province
+                    highlighted: page.cfg_stationId === stationId
+                    onClicked: page.selectCity(stationId, city)
+                }
+            }
+            QQC2.Label {
+                Layout.fillWidth: true
+                text: t.tr("Without a city, the pill shows “Set city” instead of the temperature.")
+                opacity: 0.7
+                font: Kirigami.Theme.smallFont
+                wrapMode: Text.WordWrap
+            }
         }
         QQC2.SpinBox {
             id: sizeBox

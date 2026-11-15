@@ -7,6 +7,9 @@
         <entry name="city" type="String">
             <default></default>
         </entry>
+        <entry name="stationId" type="String">
+            <default></default>
+        </entry>
         <entry name="language" type="String">
             <default></default>
         </entry>

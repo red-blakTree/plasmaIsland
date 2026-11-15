@@ -42,8 +42,8 @@ msgstr ""
 msgid "Weather city:"
 msgstr ""
 
-#: package/contents/ui/configGeneral.qml:18
-msgid "e.g. Berlin"
+#: package/contents/ui/configGeneral.qml
+msgid "No matching city"
 msgstr ""
 
 #: package/contents/ui/configGeneral.qml:21
@@ -154,6 +154,14 @@ msgstr ""
 msgid "Fog"
 msgstr ""
 
+#: package/contents/ui/WeatherView.qml
+msgid "Haze"
+msgstr ""
+
+#: package/contents/ui/WeatherView.qml
+msgid "Dust"
+msgstr ""
+
 #: package/contents/ui/WeatherView.qml:28
 msgid "Drizzle"
 msgstr ""
@@ -172,6 +180,10 @@ msgstr ""
 
 #: package/contents/ui/WeatherView.qml:32
 msgid "Freezing rain"
+msgstr ""
+
+#: package/contents/ui/WeatherView.qml
+msgid "Rain and snow"
 msgstr ""
 
 #: package/contents/ui/WeatherView.qml:33

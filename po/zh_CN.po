@@ -1,0 +1,265 @@
+# Plasma Island translation.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the plasma-island package.
+#
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: plasma-island\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-08 22:08+0100\n"
+"PO-Revision-Date: 2026-11-15 13:00+0800\n"
+"Last-Translator: Plasma Island contributors\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Language: zh_CN\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: package/contents/ui/CalendarView.qml:25
+msgctxt "hours, short"
+msgid "h"
+msgstr "小时"
+
+#: package/contents/ui/CalendarView.qml:104
+msgid "Today"
+msgstr "今天"
+
+#: package/contents/ui/CalendarView.qml:211
+msgid "Tomorrow"
+msgstr "明天"
+
+#: package/contents/ui/CalendarView.qml:211
+msgid "Yesterday"
+msgstr "昨天"
+
+#: package/contents/ui/CalendarView.qml:234
+msgid "Add time zones…"
+msgstr "添加时区…"
+
+#: package/contents/ui/configGeneral.qml:17
+msgid "Weather city:"
+msgstr "天气城市："
+
+#: package/contents/ui/configGeneral.qml
+msgid "No matching city"
+msgstr "未找到匹配的城市"
+
+#: package/contents/ui/configGeneral.qml:21
+msgid "Without a city, the pill shows “Set city” instead of the temperature."
+msgstr "未设置城市时，胶囊会显示“设置城市”而不是温度。"
+
+#: package/contents/ui/configGeneral.qml:27
+msgid "Size:"
+msgstr "大小："
+
+#: package/contents/ui/configGeneral.qml:31
+msgid "%1 px"
+msgstr "%1 像素"
+
+#: package/contents/ui/configGeneral.qml:35
+msgid "Tip: hold Ctrl and scroll over the pill to resize it live."
+msgstr "提示：按住 Ctrl 并在胶囊上滚动，即可实时调整大小。"
+
+#: package/contents/ui/configGeneral.qml:41
+msgid "Clock:"
+msgstr "时钟："
+
+#: package/contents/ui/configGeneral.qml:42
+msgid "Show seconds"
+msgstr "显示秒"
+
+#: package/contents/ui/configGeneral.qml:46
+msgid "Time format:"
+msgstr "时间格式："
+
+#: package/contents/ui/configGeneral.qml:47
+msgid "System default"
+msgstr "系统默认"
+
+#: package/contents/ui/configGeneral.qml:47
+msgid "12-hour"
+msgstr "12 小时制"
+
+#: package/contents/ui/configGeneral.qml:47
+msgid "24-hour"
+msgstr "24 小时制"
+
+#: package/contents/ui/configGeneral.qml:51
+msgid "Date format:"
+msgstr "日期格式："
+
+#: package/contents/ui/configGeneral.qml:60
+msgid "System short date"
+msgstr "系统短日期"
+
+#: package/contents/ui/configGeneral.qml:65
+msgid "Music:"
+msgstr "音乐："
+
+#: package/contents/ui/configGeneral.qml:66
+msgid "Briefly show each new track in the pill"
+msgstr "在胶囊中短暂显示每首新曲目"
+
+#: package/contents/ui/configTimeZones.qml:44
+msgid "No time zones yet. Search below and click one to add it."
+msgstr "尚未添加时区。请在下方搜索并点击要添加的时区。"
+
+#: package/contents/ui/configTimeZones.qml:45
+msgid "Shown in the calendar card, in this order:"
+msgstr "在日历卡片中按以下顺序显示："
+
+#: package/contents/ui/configTimeZones.qml:64
+msgid "Move up"
+msgstr "上移"
+
+#: package/contents/ui/configTimeZones.qml:71
+msgid "Move down"
+msgstr "下移"
+
+#: package/contents/ui/configTimeZones.qml:77
+msgid "Remove"
+msgstr "移除"
+
+#: package/contents/ui/configTimeZones.qml:87
+msgid "Search a city…"
+msgstr "搜索城市…"
+
+#: package/contents/ui/Island.qml:188
+msgid "Set city"
+msgstr "设置城市"
+
+#: package/contents/ui/PlayerView.qml:68
+msgid "Nothing playing"
+msgstr "暂无播放"
+
+#: package/contents/ui/WeatherView.qml:23
+msgid "Clear"
+msgstr "晴"
+
+#: package/contents/ui/WeatherView.qml:24
+msgid "Mostly clear"
+msgstr "大部晴朗"
+
+#: package/contents/ui/WeatherView.qml:25
+msgid "Partly cloudy"
+msgstr "局部多云"
+
+#: package/contents/ui/WeatherView.qml:26
+msgid "Overcast"
+msgstr "阴"
+
+#: package/contents/ui/WeatherView.qml:27
+msgid "Fog"
+msgstr "雾"
+
+#: package/contents/ui/WeatherView.qml
+msgid "Haze"
+msgstr "霾"
+
+#: package/contents/ui/WeatherView.qml
+msgid "Dust"
+msgstr "沙尘"
+
+#: package/contents/ui/WeatherView.qml:28
+msgid "Drizzle"
+msgstr "毛毛雨"
+
+#: package/contents/ui/WeatherView.qml:29
+msgid "Freezing drizzle"
+msgstr "冻毛毛雨"
+
+#: package/contents/ui/WeatherView.qml:30
+msgid "Rain"
+msgstr "雨"
+
+#: package/contents/ui/WeatherView.qml:31
+msgid "Heavy rain"
+msgstr "大雨"
+
+#: package/contents/ui/WeatherView.qml:32
+msgid "Freezing rain"
+msgstr "冻雨"
+
+#: package/contents/ui/WeatherView.qml
+msgid "Rain and snow"
+msgstr "雨夹雪"
+
+#: package/contents/ui/WeatherView.qml:33
+msgid "Snow"
+msgstr "雪"
+
+#: package/contents/ui/WeatherView.qml:34
+msgid "Heavy snow"
+msgstr "大雪"
+
+#: package/contents/ui/WeatherView.qml:35
+msgid "Snow grains"
+msgstr "米雪"
+
+#: package/contents/ui/WeatherView.qml:36
+msgid "Showers"
+msgstr "阵雨"
+
+#: package/contents/ui/WeatherView.qml:37
+msgid "Heavy showers"
+msgstr "强阵雨"
+
+#: package/contents/ui/WeatherView.qml:38
+msgid "Snow showers"
+msgstr "阵雪"
+
+#: package/contents/ui/WeatherView.qml:39
+msgid "Thunderstorm"
+msgstr "雷暴"
+
+#: package/contents/ui/WeatherView.qml:40
+msgid "Thunderstorm with hail"
+msgstr "雷暴伴冰雹"
+
+#: package/contents/ui/WeatherView.qml:54
+msgid "Weather unavailable"
+msgstr "天气不可用"
+
+#: package/contents/ui/WeatherView.qml:54
+msgid "Loading weather…"
+msgstr "正在加载天气…"
+
+#: package/contents/ui/WeatherView.qml:105
+msgid "H:%1  L:%2"
+msgstr "高:%1  低:%2"
+
+#: package/contents/ui/WeatherView.qml:127
+msgid "Feels like %1"
+msgstr "体感温度 %1"
+
+#: package/contents/ui/WeatherView.qml:130
+#, javascript-format
+msgid "Humidity %1%"
+msgstr "湿度 %1%"
+
+#: package/contents/ui/WeatherView.qml:133
+msgid "Wind %1 %2"
+msgstr "风速 %1 %2"
+
+#: package/contents/config/config.qml:6
+msgid "General"
+msgstr "常规"
+
+#: package/contents/config/config.qml:11
+msgid "Time Zones"
+msgstr "时区"
+
+
+#: package/contents/ui/configGeneral.qml
+msgid "Language:"
+msgstr "语言："
+
+#: package/contents/ui/Weather.qml
+msgid "km/h"
+msgstr "公里/小时"
+
+#: package/contents/ui/Weather.qml
+msgid "mph"
+msgstr "英里/小时"

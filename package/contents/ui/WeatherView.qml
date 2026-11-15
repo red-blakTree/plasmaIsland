@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
 // Weather details: now (icon, temperature, condition, place, high/low),
-// feels-like / humidity / wind, and the next six hours.
+// feels-like / humidity / wind, and the next six days.
 Item {
     id: view
 
@@ -13,7 +13,6 @@ Item {
 
     Translator { id: t; language: view.language }
     property real u: 1
-    property bool twelveHour: false
 
     readonly property bool ready: !!weather && weather.available
 
@@ -22,33 +21,8 @@ Item {
 
     readonly property color dim: "#9a9a9a"
 
-    function conditionFor(code) {
-        switch (code) {
-        case 0: return t.tr("Clear");
-        case 1: return t.tr("Mostly clear");
-        case 2: return t.tr("Partly cloudy");
-        case 3: return t.tr("Overcast");
-        case 45: case 48: return t.tr("Fog");
-        case 51: case 53: case 55: return t.tr("Drizzle");
-        case 56: case 57: return t.tr("Freezing drizzle");
-        case 61: case 63: return t.tr("Rain");
-        case 65: return t.tr("Heavy rain");
-        case 66: case 67: return t.tr("Freezing rain");
-        case 71: case 73: return t.tr("Snow");
-        case 75: return t.tr("Heavy snow");
-        case 77: return t.tr("Snow grains");
-        case 80: case 81: return t.tr("Showers");
-        case 82: return t.tr("Heavy showers");
-        case 85: case 86: return t.tr("Snow showers");
-        case 95: return t.tr("Thunderstorm");
-        case 96: case 99: return t.tr("Thunderstorm with hail");
-        default: return "";
-        }
-    }
-
-    function hourLabel(d) {
-        // Hour only, in the user's 12h/24h convention.
-        return view.locale.toString(d, twelveHour ? "h AP" : "HH:mm");
+    function dayLabel(d) {
+        return view.locale.toString(d, "ddd");
     }
 
     // --- Loading / unavailable ----------------------------------------------
@@ -88,7 +62,7 @@ Item {
                 spacing: 1 * view.u
                 Text {
                     Layout.fillWidth: true
-                    text: view.weather ? view.conditionFor(view.weather.code) : ""
+                    text: view.weather ? t.tr(view.weather.condition) : ""
                     color: "white"
                     font.pixelSize: Math.round(14 * view.u)
                     font.weight: Font.DemiBold
@@ -148,12 +122,12 @@ Item {
             color: "#26262c"
         }
 
-        // Next hours.
+        // Next days.
         RowLayout {
             Layout.fillWidth: true
             spacing: 0
             Repeater {
-                model: view.weather ? view.weather.hourly : []
+                model: view.weather ? view.weather.daily : []
                 ColumnLayout {
                     required property var modelData
                     Layout.fillWidth: true
@@ -162,7 +136,7 @@ Item {
                     Text {
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignHCenter
-                        text: view.hourLabel(parent.modelData.time)
+                        text: view.dayLabel(parent.modelData.time)
                         color: view.dim
                         font.pixelSize: Math.round(11 * view.u)
                         font.weight: Font.Medium
@@ -176,10 +150,18 @@ Item {
                     Text {
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignHCenter
-                        text: view.weather.deg(parent.modelData.temperature)
+                        text: view.weather.deg(parent.modelData.high)
                         color: "white"
-                        font.pixelSize: Math.round(13 * view.u)
+                        font.pixelSize: Math.round(12 * view.u)
                         font.weight: Font.DemiBold
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                        text: view.weather.deg(parent.modelData.low)
+                        color: view.dim
+                        font.pixelSize: Math.round(11 * view.u)
+                        font.weight: Font.Medium
                     }
                 }
             }

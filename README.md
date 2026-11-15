@@ -13,7 +13,7 @@ A Dynamic Island–style pill for a KDE Plasma 6 top panel.
   Scroll over the card to change the player's volume. Clicking the album art brings the player
   window to the front.
 - **Click the weather:** details — condition, feels like, humidity, wind, today's high/low and the
-  next six hours. With no city set, the pill says “Set city” and clicking it opens the settings.
+  next six days. With no city set, the pill says “Set city” and clicking it opens the settings.
 - **Click the date:** a month calendar (arrows or scroll to browse) and your world clocks.
 - **New track:** the pill briefly widens to show the new title (can be turned off).
 - **Middle-click** the pill to play/pause without opening a card.
@@ -23,8 +23,10 @@ Click the same spot again, or anywhere else, to close a card.
 Media works with anything that speaks MPRIS (Spotify, browsers, VLC, Elisa, mpv…) through
 Plasma's own media service, and follows whichever player Plasma considers active.
 
-Weather comes from [Open-Meteo](https://open-meteo.com) (free, no account) and refreshes every
-15 minutes. °C or °F follows your system locale; the time format (12h/24h) and date format follow your locale by default and can be changed in the settings.
+Weather comes from the [National Meteorological Center of China](https://www.nmc.cn) (free, no
+account) and refreshes every 15 minutes. It covers Chinese cities and provides the current
+conditions plus a seven-day forecast; °C or °F follows your system locale. The time format
+(12h/24h) and date format follow your locale by default and can be changed in the settings.
 
 ## Install
 
@@ -33,10 +35,10 @@ Weather comes from [Open-Meteo](https://open-meteo.com) (free, no account) and r
 ```
 
 Then right-click the top panel → **Add or Manage Widgets** → search **Plasma Island** and drag it
-into the panel. Right-click the pill → **Configure Plasma Island…** to set your city, the size
-(pill height in px, default 32; the cards scale with it), seconds on the clock and the new-track
-popup. The **Time Zones** page adds any number of world clocks (search a city, click to add,
-reorder with the arrows).
+into the panel. Right-click the pill → **Configure Plasma Island…** to search for and select your
+city, the size (pill height in px, default 32; the cards scale with it), seconds on the clock and
+the new-track popup. The **Time Zones** page adds any number of world clocks (search a city, click
+to add, reorder with the arrows).
 You can also hold **Ctrl** and scroll over the pill to resize it live.
 
 To center it, put a **Flexible Spacer** on each side of it (panel edit mode → Add Spacer).
@@ -47,17 +49,19 @@ You'll probably want to remove Plasma's Digital Clock from the panel as well.
 
 ## Translations
 
-Plasma Island is translated into Greek, Spanish, German and Russian (it follows your system language).
+Plasma Island is translated into Greek, Spanish, German, Russian and Simplified Chinese (it follows
+your system language).
 To add or fix a language, edit or copy a file in [`po/`](po) (e.g. `po/fr.po` from
 `po/plasma_applet_io.github.luminarysrc.plasmaisland.pot`) and open a pull request. `./install.sh`
 compiles them with `msgfmt` (from gettext).
 
 ## Languages
 
-English, Русский, Español, Deutsch and Ελληνικά. By default the widget follows your Plasma
+English, Русский, Español, Deutsch, Ελληνικά and 简体中文. By default the widget follows your Plasma
 language; **Configure → Language** overrides it for this widget only (cards, settings, month and
-weekday names, and the place name in the weather). The translations were made with AI; corrections
-are welcome — edit the `po/<lang>.po` file and open a pull request.
+weekday names). Weather place names come from the National Meteorological Center and are shown in
+Chinese. The translations were made with AI; corrections are welcome — edit the `po/<lang>.po`
+file and open a pull request.
 
 Plasma applies one language to the whole shell, so the widget carries its own copy of the
 strings: `po/gen-js.py` turns `po/*.po` into `package/contents/ui/Translations.js`. `./install.sh`

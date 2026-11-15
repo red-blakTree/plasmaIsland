@@ -1,14 +1,15 @@
 import QtQuick
 
-// Weather from Open-Meteo (https://open-meteo.com), which needs no API key.
-// The city name is geocoded once; conditions are refreshed every 15 minutes in one request
-// (current conditions + the next hours + today's high/low).
+// Weather from the National Meteorological Center of China (https://www.nmc.cn),
+// the source plasma-ions-china uses. It needs no API key and covers Chinese cities.
+// The city is looked up once; current conditions and the daily forecast are refreshed
+// every 15 minutes in one request.
 Item {
     id: weather
 
     property string city: ""
-    property string language: ""     // the geocoder names the place in it ("" = its default)
-    readonly property bool hasCity: city.trim() !== ""
+    property string stationId: ""     // a station chosen in the settings (optional)
+    readonly property bool hasCity: city.trim() !== "" || stationId !== ""
     readonly property bool imperial: Qt.locale().measurementSystem === Locale.ImperialUSSystem
 
     // NaN until the first successful fetch, or when no city is set.
@@ -19,11 +20,12 @@ Item {
     property int humidity: -1
     property real windSpeed: NaN
     readonly property string windUnit: imperial ? "mph" : "km/h"
-    property int code: -1
+    property string condition: ""     // msgid for t.tr(), or the server's own text
     property string iconName: "weather-none-available"
-    property string placeName: ""     // as the geocoder spells it, e.g. "Berlin, Germany"
-    // [{ time: Date (city-local wall clock), temperature, iconName }]
-    property var hourly: []
+    property string placeName: ""
+    // [{ time: Date, high, low, iconName }]
+    property var daily: []
+    property string resolvedStationId: ""
 
     readonly property bool available: !isNaN(temperature)
     // True after a failed lookup or fetch (no network, unknown city), until the next success.
@@ -31,29 +33,30 @@ Item {
     readonly property string text: available ? deg(temperature) : "—"
 
     function deg(t) {
-        return isNaN(t) ? "—" : Math.round(t) + "°";
+        if (isNaN(t)) {
+            return "—";
+        }
+        return Math.round(imperial ? t * 9 / 5 + 32 : t) + "°";
     }
 
-    property real latitude: NaN
-    property real longitude: NaN
-
     onCityChanged: {
-        latitude = NaN;
-        longitude = NaN;
+        resolvedStationId = stationId;
         placeName = "";
         temperature = NaN;
-        hourly = [];
+        daily = [];
         failed = false;
         iconName = "weather-none-available";
         soon.restart();
     }
-    onImperialChanged: soon.restart()
-    onLanguageChanged: {
-        latitude = NaN;   // look the place up again to get its name in the new language
-        longitude = NaN;
+    onStationIdChanged: {
+        resolvedStationId = stationId;
         soon.restart();
     }
-    Component.onCompleted: soon.restart()
+    onImperialChanged: soon.restart()
+    Component.onCompleted: {
+        resolvedStationId = stationId;
+        soon.restart();
+    }
 
     // Collapses the startup/config-change triggers above into a single request.
     Timer {
@@ -98,26 +101,25 @@ Item {
 
     function refresh() {
         const name = city.trim();
-        if (name === "") {
+        if (name === "" && resolvedStationId === "") {
             return;
         }
-        if (isNaN(latitude)) {
+        if (resolvedStationId === "") {
             const requested = name;
-            getJson("https://geocoding-api.open-meteo.com/v1/search?count=1&format=json"
-                    + (language !== "" ? "&language=" + language : "") + "&name="
-                    + encodeURIComponent(name), data => {
+            const stamp = Date.now();
+            getJson("https://www.nmc.cn/essearch/api/autocomplete?q=" + encodeURIComponent(name)
+                    + "&limit=10&timestamp=" + stamp + "&_=" + stamp, data => {
                 if (requested !== weather.city.trim()) {
                     return; // the city changed while we were waiting
                 }
-                const hit = data && data.results && data.results[0];
-                if (!hit) {
+                const hit = data && data.code === 0 && data.data ? data.data[0] : null;
+                const parts = typeof hit === "string" ? hit.split("|") : [];
+                if (parts.length < 6) {
                     weather.failed = true;
                     retry.restart();
                     return;
                 }
-                weather.latitude = hit.latitude;
-                weather.longitude = hit.longitude;
-                weather.placeName = hit.country ? hit.name + ", " + hit.country : hit.name;
+                weather.resolvedStationId = parts[0];
                 weather.fetchForecast();
             });
         } else {
@@ -126,69 +128,162 @@ Item {
     }
 
     function fetchForecast() {
-        const url = "https://api.open-meteo.com/v1/forecast"
-            + "?latitude=" + latitude + "&longitude=" + longitude
-            + "&current=temperature_2m,apparent_temperature,weather_code,is_day,relative_humidity_2m,wind_speed_10m"
-            + "&hourly=temperature_2m,weather_code,is_day&forecast_hours=7"
-            + "&daily=temperature_2m_max,temperature_2m_min&forecast_days=1"
-            + "&timezone=auto"
-            + (imperial ? "&temperature_unit=fahrenheit&wind_speed_unit=mph" : "");
-        getJson(url, data => {
-            const cur = data && data.current;
-            if (!cur || typeof cur.temperature_2m !== "number") {
+        const requested = resolvedStationId;
+        getJson("https://www.nmc.cn/rest/weather?stationid=" + encodeURIComponent(requested)
+                + "&_=" + Date.now(), data => {
+            if (requested !== weather.resolvedStationId) {
+                return; // the city changed while we were waiting
+            }
+            const d = data && data.code === 0 ? data.data : null;
+            const real = d && d.real;
+            const current = real && real.weather;
+            if (!current || isNaN(toNumber(current.temperature))) {
                 weather.failed = true;
                 retry.restart();
                 return;
             }
             weather.failed = false;
-            weather.temperature = cur.temperature_2m;
-            weather.feelsLike = typeof cur.apparent_temperature === "number" ? cur.apparent_temperature : NaN;
-            weather.humidity = typeof cur.relative_humidity_2m === "number" ? cur.relative_humidity_2m : -1;
-            weather.windSpeed = typeof cur.wind_speed_10m === "number" ? cur.wind_speed_10m : NaN;
-            weather.code = cur.weather_code;
-            weather.iconName = iconFor(cur.weather_code, cur.is_day === 1);
+            weather.temperature = toNumber(current.temperature);
+            weather.feelsLike = toNumber(current.feelst);
+            const humidity = toNumber(current.humidity);
+            weather.humidity = isNaN(humidity) ? -1 : Math.round(humidity);
 
-            const d = data.daily;
-            weather.high = d && d.temperature_2m_max ? d.temperature_2m_max[0] : NaN;
-            weather.low = d && d.temperature_2m_min ? d.temperature_2m_min[0] : NaN;
+            const wind = real.wind;
+            const windSpeed = wind ? toNumber(wind.speed) : NaN;
+            weather.windSpeed = isNaN(windSpeed) ? NaN : windSpeed * (weather.imperial ? 2.236936 : 3.6);
 
-            const h = data.hourly;
-            const hours = [];
-            if (h && h.time) {
-                // Skip the current hour (it's shown as "now" above); keep the next six.
-                for (let i = 1; i < h.time.length && hours.length < 6; i++) {
-                    hours.push({
-                        time: parseLocal(h.time[i]),
-                        temperature: h.temperature_2m[i],
-                        iconName: iconFor(h.weather_code[i], h.is_day[i] === 1)
-                    });
+            const station = real.station || {};
+            const province = station.province || "";
+            weather.placeName = station.city
+                ? (province && province !== station.city + "市" ? station.city + ", " + province : station.city)
+                : "";
+
+            const sun = real.sunriseSunset || {};
+            const night = isNight(sun.sunrise, sun.sunset);
+
+            const detail = d.predict && Array.isArray(d.predict.detail) ? d.predict.detail : [];
+            const today = detail[0];
+            let img = current.img;
+            if (!isValidImg(img) && today) {
+                const part = night ? today.night : today.day;
+                img = part && part.weather ? part.weather.img : "";
+            }
+            weather.condition = conditionFor(img, current.info);
+            weather.iconName = iconFor(img, night);
+
+            weather.high = today && today.day && today.day.weather
+                ? toNumber(today.day.weather.temperature) : NaN;
+            weather.low = today && today.night && today.night.weather
+                ? toNumber(today.night.weather.temperature) : NaN;
+            if (isNaN(weather.high) || isNaN(weather.low)) {
+                const chart = d.tempchart;
+                if (Array.isArray(chart) && chart.length > 0) {
+                    const last = chart[chart.length - 1];
+                    weather.high = isNaN(weather.high) ? toNumber(last.max_temp) : weather.high;
+                    weather.low = isNaN(weather.low) ? toNumber(last.min_temp) : weather.low;
                 }
             }
-            weather.hourly = hours;
+
+            // Today is already in the header; the row shows the next six days.
+            const days = [];
+            for (let i = 1; i < detail.length && days.length < 6; i++) {
+                const entry = detail[i];
+                const day = entry.day && entry.day.weather;
+                if (!day || isNaN(toNumber(day.temperature))) {
+                    continue;
+                }
+                days.push({
+                    time: parseDate(entry.date),
+                    high: toNumber(day.temperature),
+                    low: entry.night && entry.night.weather ? toNumber(entry.night.weather.temperature) : NaN,
+                    iconName: iconFor(day.img, false)
+                });
+            }
+            weather.daily = days;
         });
     }
 
-    // "2026-11-02T22:00" in the city's own time → a Date with the same wall-clock fields.
-    function parseLocal(s) {
-        const m = /^(\d+)-(\d+)-(\d+)T(\d+):(\d+)/.exec(s);
+    // The API uses numbers, numeric strings and "9999" for missing values.
+    function toNumber(v) {
+        if (typeof v === "number") {
+            return isFinite(v) && v !== 9999 ? v : NaN;
+        }
+        if (typeof v === "string" && v !== "" && v !== "9999") {
+            const n = Number(v);
+            return isFinite(n) ? n : NaN;
+        }
+        return NaN;
+    }
+
+    function isValidImg(img) {
+        return img !== undefined && img !== null && img !== "" && String(img) !== "9999";
+    }
+
+    // "2026-11-15 06:58" and "2026-11-15" are local to the city.
+    function parseDateTime(s) {
+        const m = /^(\d+)-(\d+)-(\d+) (\d+):(\d+)/.exec(s || "");
         return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) : new Date(NaN);
     }
 
-    // WMO weather interpretation codes, as documented by Open-Meteo,
-    // mapped to Breeze icon names.
-    function iconFor(code, day) {
-        switch (code) {
-        case 0: return day ? "weather-clear" : "weather-clear-night";
-        case 1: return day ? "weather-few-clouds" : "weather-few-clouds-night";
-        case 2: return day ? "weather-clouds" : "weather-clouds-night";
-        case 3: return "weather-overcast";
-        case 45: case 48: return "weather-fog";
-        case 51: case 53: case 55: return "weather-showers-scattered";
-        case 56: case 57: case 66: case 67: return "weather-freezing-rain";
-        case 61: case 63: case 65: case 80: case 81: case 82: return "weather-showers";
-        case 71: case 73: case 75: case 77: return "weather-snow";
-        case 85: case 86: return "weather-snow-scattered";
-        case 95: case 96: case 99: return "weather-storm";
+    function parseDate(s) {
+        const m = /^(\d+)-(\d+)-(\d+)/.exec(s || "");
+        return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(NaN);
+    }
+
+    function isNight(sunrise, sunset) {
+        const rise = parseDateTime(sunrise);
+        const set = parseDateTime(sunset);
+        if (isNaN(rise) || isNaN(set)) {
+            return false;
+        }
+        const now = new Date();
+        return now < rise || now >= set;
+    }
+
+    // NMC weather icon codes, mapped to the widget's condition strings.
+    function conditionFor(img, info) {
+        switch (String(img)) {
+        case "0": return "Clear";
+        case "1": return "Partly cloudy";
+        case "2": return "Overcast";
+        case "3": return "Showers";
+        case "4": case "9": case "10": return "Thunderstorm";
+        case "5": return "Thunderstorm with hail";
+        case "6": return "Rain and snow";
+        case "7": case "8": case "21": return "Rain";
+        case "11": case "12": case "22": case "23": case "24": case "25": return "Heavy rain";
+        case "13": return "Snow showers";
+        case "14": case "15": case "26": return "Snow";
+        case "16": case "17": case "27": case "28": return "Heavy snow";
+        case "18": case "32": case "49": case "57": case "58": return "Fog";
+        case "19": return "Freezing rain";
+        case "20": case "29": case "30": case "31": return "Dust";
+        case "53": case "54": case "55": case "56": return "Haze";
+        case "301": return "Rain";
+        case "302": return "Snow";
+        default: return info && info !== "-" && info !== "9999" ? info : "";
+        }
+    }
+
+    // NMC weather icon codes, mapped to Breeze icon names.
+    function iconFor(img, night) {
+        switch (String(img)) {
+        case "0": return night ? "weather-clear-night" : "weather-clear";
+        case "1": return night ? "weather-few-clouds-night" : "weather-few-clouds";
+        case "2": return "weather-overcast";
+        case "3": return "weather-showers-scattered";
+        case "4": case "5": case "9": case "10": return "weather-storm";
+        case "6": return "weather-freezing-rain";
+        case "7": case "8": case "21": return "weather-showers";
+        case "11": case "12": case "22": case "23": case "24": case "25": return "weather-showers";
+        case "13": return "weather-snow-scattered";
+        case "14": case "15": case "26": return "weather-snow";
+        case "16": case "17": case "27": case "28": return "weather-snow";
+        case "18": case "32": case "49": case "57": case "58": return "weather-fog";
+        case "19": return "weather-freezing-rain";
+        case "53": case "54": case "55": case "56": return "weather-fog";
+        case "301": return "weather-showers";
+        case "302": return "weather-snow";
         default: return "weather-none-available";
         }
     }

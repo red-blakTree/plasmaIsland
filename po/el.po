@@ -42,9 +42,9 @@ msgstr "Προσθήκη ζωνών ώρας…"
 msgid "Weather city:"
 msgstr "Πόλη καιρού:"
 
-#: package/contents/ui/configGeneral.qml:18
-msgid "e.g. Berlin"
-msgstr "π.χ. Αθήνα"
+#: package/contents/ui/configGeneral.qml
+msgid "No matching city"
+msgstr "Δεν βρέθηκε πόλη"
 
 #: package/contents/ui/configGeneral.qml:21
 msgid "Without a city, the pill shows “Set city” instead of the temperature."
@@ -154,6 +154,14 @@ msgstr "Συννεφιά"
 msgid "Fog"
 msgstr "Ομίχλη"
 
+#: package/contents/ui/WeatherView.qml
+msgid "Haze"
+msgstr "Αχλύς"
+
+#: package/contents/ui/WeatherView.qml
+msgid "Dust"
+msgstr "Σκόνη"
+
 #: package/contents/ui/WeatherView.qml:28
 msgid "Drizzle"
 msgstr "Ψιχάλες"
@@ -173,6 +181,10 @@ msgstr "Δυνατή βροχή"
 #: package/contents/ui/WeatherView.qml:32
 msgid "Freezing rain"
 msgstr "Παγωμένη βροχή"
+
+#: package/contents/ui/WeatherView.qml
+msgid "Rain and snow"
+msgstr "Χιονόνερο"
 
 #: package/contents/ui/WeatherView.qml:33
 msgid "Snow"
