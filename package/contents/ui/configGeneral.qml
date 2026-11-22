@@ -11,6 +11,9 @@ KCM.SimpleKCM {
     property string cfg_language
     property string cfg_city
     property string cfg_stationId
+    property string cfg_weatherProvider
+    property string cfg_amapAdcode
+    property alias cfg_amapKey: amapKeyField.text
     property alias cfg_showSeconds: secondsBox.checked
     property int cfg_clockFormat
     property int cfg_dateFormat
@@ -27,6 +30,7 @@ KCM.SimpleKCM {
     property int searchSeq: 0
 
     readonly property var languageCodes: ["", "en", "ru", "es", "de", "el", "zh_CN"]
+    readonly property bool amapMode: cfg_weatherProvider === "amap"
     readonly property var loc: cfg_language === "" ? Qt.locale() : Qt.locale(cfg_language)
 
     // The page itself switches language as soon as one is chosen.
@@ -43,6 +47,11 @@ KCM.SimpleKCM {
         ListElement { label: "Deutsch" }
         ListElement { label: "Ελληνικά" }
         ListElement { label: "简体中文" }
+    }
+    ListModel {
+        id: providerModel
+        ListElement { label: "中国气象局 (NMC)" }
+        ListElement { label: "高德天气 (Amap)" }
     }
     ListModel {
         id: clockModel
@@ -79,6 +88,14 @@ KCM.SimpleKCM {
     }
 
     function searchCities() {
+        if (page.amapMode) {
+            page.searchAmapCities();
+        } else {
+            page.searchNmcCities();
+        }
+    }
+
+    function searchNmcCities() {
         const query = citySearch.text.trim();
         if (query === "") {
             cityResults.clear();
@@ -118,12 +135,80 @@ KCM.SimpleKCM {
         xhr.send();
     }
 
+    function searchAmapCities() {
+        const query = citySearch.text.trim();
+        const key = amapKeyField.text.trim();
+        cityResults.clear();
+        page.searchDone = false;
+        if (query === "" || key === "") {
+            return;
+        }
+        const seq = ++page.searchSeq;
+        const xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = () => {
+            if (xhr.readyState !== XMLHttpRequest.DONE || seq !== page.searchSeq) {
+                return;
+            }
+            cityResults.clear();
+            page.searchDone = true;
+            if (xhr.status !== 200) {
+                return;
+            }
+            let data = null;
+            try {
+                data = JSON.parse(xhr.responseText);
+            } catch (e) {
+                return;
+            }
+            if (!data || data.status !== "1" || !Array.isArray(data.geocodes)) {
+                return;
+            }
+            for (const geo of data.geocodes) {
+                const adcode = page.amapText(geo.adcode);
+                if (adcode === "") {
+                    continue;
+                }
+                const province = page.amapText(geo.province);
+                const cityName = page.amapText(geo.city);
+                const district = page.amapText(geo.district);
+                const name = district && district !== cityName ? district : (cityName || province
+                    || page.amapText(geo.formatted_address));
+                if (name === "") {
+                    continue;
+                }
+                const region = cityName && cityName !== name ? cityName : province;
+                cityResults.append({
+                    stationId: adcode,
+                    city: name,
+                    province: region === name ? "" : region
+                });
+            }
+        };
+        xhr.open("GET", "https://restapi.amap.com/v3/geocode/geo?key=" + encodeURIComponent(key)
+                 + "&address=" + encodeURIComponent(query));
+        xhr.send();
+    }
+
+    // Amap mixes strings and empty arrays for missing fields.
+    function amapText(v) {
+        if (Array.isArray(v)) {
+            return v.length > 0 ? String(v[0]) : "";
+        }
+        return v === undefined || v === null ? "" : String(v);
+    }
+
     function selectCity(stationId, city) {
         page.settingCity = true;
         citySearch.text = city;
         page.settingCity = false;
         page.cfg_city = city;
-        page.cfg_stationId = stationId;
+        if (page.amapMode) {
+            page.cfg_amapAdcode = stationId;
+            page.cfg_stationId = "";
+        } else {
+            page.cfg_stationId = stationId;
+            page.cfg_amapAdcode = "";
+        }
         page.searchDone = false;
         page.searchSeq++;
         citySearchTimer.stop();
@@ -166,6 +251,21 @@ KCM.SimpleKCM {
         page.settingCity = false;
     }
 
+    onCfg_weatherProviderChanged: {
+        if (!page.ready) {
+            return;
+        }
+        page.searchDone = false;
+        page.searchSeq++;
+        cityResults.clear();
+        citySearchTimer.stop();
+        if (citySearch.text.trim() !== ""
+                && (!page.amapMode || amapKeyField.text.trim() !== "")) {
+            citySearchTimer.restart();
+        }
+        providerBox.currentIndex = page.amapMode ? 1 : 0;
+    }
+
     Kirigami.FormLayout {
         QQC2.ComboBox {
             id: languageBox
@@ -176,6 +276,34 @@ KCM.SimpleKCM {
             onActivated: index => page.cfg_language = page.languageCodes[index]
         }
 
+        QQC2.ComboBox {
+            id: providerBox
+            Kirigami.FormData.label: t.tr("Weather source:")
+            model: providerModel
+            textRole: "label"
+            currentIndex: page.amapMode ? 1 : 0
+            onActivated: index => page.cfg_weatherProvider = index === 1 ? "amap" : "nmc"
+        }
+        QQC2.TextField {
+            id: amapKeyField
+            visible: page.amapMode
+            Kirigami.FormData.label: t.tr("Amap key:")
+            placeholderText: "Web service key"
+            onTextChanged: {
+                if (!page.ready || !page.amapMode) {
+                    return;
+                }
+                page.searchDone = false;
+                page.searchSeq++;
+                if (text.trim() === "" || citySearch.text.trim() === "") {
+                    cityResults.clear();
+                    citySearchTimer.stop();
+                } else {
+                    citySearchTimer.restart();
+                }
+            }
+        }
+
         ColumnLayout {
             Layout.fillWidth: true
             Kirigami.FormData.label: t.tr("Weather city:")
@@ -183,6 +311,7 @@ KCM.SimpleKCM {
             QQC2.TextField {
                 id: citySearch
                 Layout.fillWidth: true
+                enabled: !page.amapMode || amapKeyField.text.trim() !== ""
                 placeholderText: t.tr("Search a city…")
                 onTextChanged: {
                     if (page.settingCity) {
@@ -190,6 +319,7 @@ KCM.SimpleKCM {
                     }
                     page.cfg_city = text;
                     page.cfg_stationId = "";
+                    page.cfg_amapAdcode = "";
                     page.searchDone = false;
                     page.searchSeq++;
                     if (text.trim() === "") {
@@ -199,6 +329,14 @@ KCM.SimpleKCM {
                         citySearchTimer.restart();
                     }
                 }
+            }
+            QQC2.Label {
+                Layout.fillWidth: true
+                visible: page.amapMode && amapKeyField.text.trim() === ""
+                text: t.tr("Enter an Amap Web service key to search cities.")
+                opacity: 0.7
+                font: Kirigami.Theme.smallFont
+                wrapMode: Text.WordWrap
             }
             QQC2.Label {
                 Layout.fillWidth: true
@@ -218,8 +356,10 @@ KCM.SimpleKCM {
                     required property string city
                     required property string province
                     width: ListView.view.width
-                    text: city + " · " + province
-                    highlighted: page.cfg_stationId === stationId
+                    text: province ? city + " · " + province : city
+                    highlighted: page.amapMode
+                        ? page.cfg_amapAdcode === stationId
+                        : page.cfg_stationId === stationId
                     onClicked: page.selectCity(stationId, city)
                 }
             }

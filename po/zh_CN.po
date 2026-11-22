@@ -291,3 +291,19 @@ msgstr "H/HH 小时（24 小时制），h/hh 小时（12 小时制），mm 分�
 #: package/contents/ui/configGeneral.qml
 msgid "d/dd day, ddd/dddd weekday, M/MM/MMM/MMMM month, yy/yyyy year"
 msgstr "d/dd 日，ddd/dddd 星期，M/MM/MMM/MMMM 月，yy/yyyy 年"
+
+#: package/contents/ui/configGeneral.qml
+msgid "Weather source:"
+msgstr "天气源："
+
+#: package/contents/ui/configGeneral.qml
+msgid "Amap key:"
+msgstr "高德 Key："
+
+#: package/contents/ui/configGeneral.qml
+msgid "Enter an Amap Web service key to search cities."
+msgstr "请填写高德 Web 服务 Key 后再搜索城市。"
+
+#: package/contents/ui/Weather.qml
+msgid "Windy"
+msgstr "有风"

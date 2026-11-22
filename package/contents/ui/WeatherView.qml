@@ -111,6 +111,8 @@ Item {
                 }
                 if (!isNaN(w.windSpeed)) {
                     parts.push(t.tr("Wind %1 %2", Math.round(w.windSpeed), t.tr(w.windUnit)));
+                } else if (w.windText) {
+                    parts.push(w.windText);
                 }
                 return parts.join(" · ");
             }

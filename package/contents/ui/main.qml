@@ -124,6 +124,9 @@ PlasmoidItem {
         id: weather
         city: Plasmoid.configuration.city
         stationId: Plasmoid.configuration.stationId
+        provider: Plasmoid.configuration.weatherProvider
+        amapKey: Plasmoid.configuration.amapKey
+        amapAdcode: Plasmoid.configuration.amapAdcode
     }
     readonly property alias weather: weather
 

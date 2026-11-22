@@ -290,3 +290,19 @@ msgstr ""
 #: package/contents/ui/configGeneral.qml
 msgid "d/dd day, ddd/dddd weekday, M/MM/MMM/MMMM month, yy/yyyy year"
 msgstr ""
+
+#: package/contents/ui/configGeneral.qml
+msgid "Weather source:"
+msgstr ""
+
+#: package/contents/ui/configGeneral.qml
+msgid "Amap key:"
+msgstr ""
+
+#: package/contents/ui/configGeneral.qml
+msgid "Enter an Amap Web service key to search cities."
+msgstr ""
+
+#: package/contents/ui/Weather.qml
+msgid "Windy"
+msgstr ""

@@ -291,3 +291,19 @@ msgstr "H/HH horas (24 h), h/hh horas (12 h), mm minutos, ss segundos, AP am/pm"
 #: package/contents/ui/configGeneral.qml
 msgid "d/dd day, ddd/dddd weekday, M/MM/MMM/MMMM month, yy/yyyy year"
 msgstr "d/dd día, ddd/dddd día de la semana, M/MM/MMM/MMMM mes, yy/yyyy año"
+
+#: package/contents/ui/configGeneral.qml
+msgid "Weather source:"
+msgstr "Fuente del tiempo:"
+
+#: package/contents/ui/configGeneral.qml
+msgid "Amap key:"
+msgstr "Clave de Amap:"
+
+#: package/contents/ui/configGeneral.qml
+msgid "Enter an Amap Web service key to search cities."
+msgstr "Introduce una clave de servicio web de Amap para buscar ciudades."
+
+#: package/contents/ui/Weather.qml
+msgid "Windy"
+msgstr "Ventoso"

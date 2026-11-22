@@ -1,15 +1,21 @@
 import QtQuick
 
-// Weather from the National Meteorological Center of China (https://www.nmc.cn),
-// the source plasma-ions-china uses. It needs no API key and covers Chinese cities.
-// The city is looked up once; current conditions and the daily forecast are refreshed
-// every 15 minutes in one request.
+// Weather from the National Meteorological Center of China (https://www.nmc.cn) by
+// default, or from Amap (https://lbs.amap.com) when a Web service key is configured.
+// NMC needs no key and refreshes every 15 minutes; Amap refreshes every 30 minutes.
 Item {
     id: weather
 
     property string city: ""
-    property string stationId: ""     // a station chosen in the settings (optional)
-    readonly property bool hasCity: city.trim() !== "" || stationId !== ""
+    property string stationId: ""     // an NMC station chosen in the settings (optional)
+    property string provider: "nmc"     // "nmc" or "amap"
+    property string amapKey: ""
+    property string amapAdcode: ""
+    property string resolvedAmapAdcode: ""
+    readonly property bool amapSelected: provider === "amap"
+    readonly property bool hasCity: amapSelected
+        ? amapKey.trim() !== "" && (amapAdcode !== "" || city.trim() !== "")
+        : city.trim() !== "" || stationId !== ""
     readonly property bool imperial: Qt.locale().measurementSystem === Locale.ImperialUSSystem
 
     // NaN until the first successful fetch, or when no city is set.
@@ -19,6 +25,7 @@ Item {
     property real low: NaN
     property int humidity: -1
     property real windSpeed: NaN
+    property string windText: ""       // Amap reports wind as text (direction + force)
     readonly property string windUnit: imperial ? "mph" : "km/h"
     property string condition: ""     // msgid for t.tr(), or the server's own text
     property string iconName: "weather-none-available"
@@ -39,22 +46,45 @@ Item {
         return Math.round(imperial ? t * 9 / 5 + 32 : t) + "°";
     }
 
-    onCityChanged: {
-        resolvedStationId = stationId;
+    function resetWeather() {
         placeName = "";
         temperature = NaN;
+        feelsLike = NaN;
+        high = NaN;
+        low = NaN;
+        humidity = -1;
+        windSpeed = NaN;
+        windText = "";
         daily = [];
         failed = false;
         iconName = "weather-none-available";
+    }
+
+    onCityChanged: {
+        resolvedStationId = stationId;
+        resolvedAmapAdcode = amapAdcode;
+        resetWeather();
         soon.restart();
     }
     onStationIdChanged: {
         resolvedStationId = stationId;
         soon.restart();
     }
+    onAmapAdcodeChanged: {
+        resolvedAmapAdcode = amapAdcode;
+        soon.restart();
+    }
+    onAmapKeyChanged: soon.restart()
+    onProviderChanged: {
+        resolvedStationId = stationId;
+        resolvedAmapAdcode = amapAdcode;
+        resetWeather();
+        soon.restart();
+    }
     onImperialChanged: soon.restart()
     Component.onCompleted: {
         resolvedStationId = stationId;
+        resolvedAmapAdcode = amapAdcode;
         soon.restart();
     }
 
@@ -66,7 +96,7 @@ Item {
     }
 
     Timer {
-        interval: 15 * 60 * 1000
+        interval: weather.amapSelected ? 30 * 60 * 1000 : 15 * 60 * 1000
         running: weather.hasCity
         repeat: true
         onTriggered: weather.refresh()
@@ -75,7 +105,7 @@ Item {
     // Retry sooner after a failure (no network at login, for example).
     Timer {
         id: retry
-        interval: 60 * 1000
+        interval: weather.amapSelected ? 5 * 60 * 1000 : 60 * 1000
         onTriggered: weather.refresh()
     }
 
@@ -100,6 +130,10 @@ Item {
     }
 
     function refresh() {
+        if (amapSelected) {
+            refreshAmap();
+            return;
+        }
         const name = city.trim();
         if (name === "" && resolvedStationId === "") {
             return;
@@ -203,6 +237,146 @@ Item {
         });
     }
 
+    // --- Amap (高德) ------------------------------------------------------
+    // Amap returns live conditions and a four-day forecast in two requests. The city is
+    // an adcode, resolved from the typed name with Amap's geocoder when the settings
+    // did not already store one.
+
+    function refreshAmap() {
+        const key = amapKey.trim();
+        if (key === "" || !hasCity) {
+            return;
+        }
+        if (resolvedAmapAdcode !== "") {
+            fetchAmapWeather();
+            return;
+        }
+        const requested = city.trim();
+        if (requested === "") {
+            return;
+        }
+        getJson("https://restapi.amap.com/v3/geocode/geo?key=" + encodeURIComponent(key)
+                + "&address=" + encodeURIComponent(requested), data => {
+            if (!amapSelected || requested !== weather.city.trim()) {
+                return; // the city changed while we were waiting
+            }
+            if (!data) {
+                weather.failed = true;
+                retry.restart();
+                return;
+            }
+            if (data.status !== "1") {
+                weather.failed = true; // invalid key or quota: retrying won't help
+                return;
+            }
+            const hits = Array.isArray(data.geocodes) ? data.geocodes : [];
+            const hit = hits.find(g => amapText(g.adcode) !== "");
+            if (!hit) {
+                weather.failed = true;
+                retry.restart();
+                return;
+            }
+            weather.resolvedAmapAdcode = amapText(hit.adcode);
+            weather.fetchAmapWeather();
+        });
+    }
+
+    function fetchAmapWeather() {
+        const requested = resolvedAmapAdcode;
+        const key = amapKey.trim();
+        if (requested === "" || key === "") {
+            return;
+        }
+        getJson("https://restapi.amap.com/v3/weather/weatherInfo?key=" + encodeURIComponent(key)
+                + "&city=" + encodeURIComponent(requested) + "&extensions=base", data => {
+            if (!amapSelected || requested !== weather.resolvedAmapAdcode) {
+                return;
+            }
+            if (!data) {
+                weather.failed = true;
+                retry.restart();
+                return;
+            }
+            if (data.status !== "1") {
+                weather.failed = true; // invalid key or quota: retrying won't help
+                return;
+            }
+            const live = Array.isArray(data.lives) ? data.lives[0] : null;
+            if (!live || isNaN(toNumber(live.temperature))) {
+                weather.failed = true;
+                retry.restart();
+                return;
+            }
+            weather.failed = false;
+            weather.temperature = toNumber(live.temperature);
+            weather.feelsLike = NaN;
+            const humidity = toNumber(live.humidity);
+            weather.humidity = isNaN(humidity) ? -1 : Math.round(humidity);
+            weather.windSpeed = NaN;
+            const direction = amapText(live.winddirection);
+            const power = amapText(live.windpower);
+            weather.windText = (direction && direction !== "无风向" ? direction + "风 " : "")
+                + (power ? power + "级" : "");
+            const province = amapText(live.province);
+            const cityName = amapText(live.city);
+            weather.placeName = cityName
+                ? (province && province !== cityName ? cityName + ", " + province : cityName)
+                : province;
+            const text = amapText(live.weather);
+            weather.condition = conditionForAmap(text);
+            weather.iconName = iconForAmap(text, isDaytime());
+            weather.fetchAmapForecast();
+        });
+    }
+
+    function fetchAmapForecast() {
+        const requested = resolvedAmapAdcode;
+        const key = amapKey.trim();
+        if (requested === "" || key === "") {
+            return;
+        }
+        getJson("https://restapi.amap.com/v3/weather/weatherInfo?key=" + encodeURIComponent(key)
+                + "&city=" + encodeURIComponent(requested) + "&extensions=all", data => {
+            if (!amapSelected || requested !== weather.resolvedAmapAdcode) {
+                return;
+            }
+            const forecast = data && data.status === "1" && Array.isArray(data.forecasts)
+                ? data.forecasts[0] : null;
+            const casts = forecast && Array.isArray(forecast.casts) ? forecast.casts : [];
+            if (casts.length === 0) {
+                weather.daily = [];
+                return;
+            }
+            const today = casts[0];
+            weather.high = toNumber(today.daytemp);
+            weather.low = toNumber(today.nighttemp);
+            const days = [];
+            for (let i = 1; i < casts.length && days.length < 6; i++) {
+                const cast = casts[i];
+                days.push({
+                    time: parseDate(cast.date),
+                    high: toNumber(cast.daytemp),
+                    low: toNumber(cast.nighttemp),
+                    iconName: iconForAmap(amapText(cast.dayweather), false)
+                });
+            }
+            weather.daily = days;
+        });
+    }
+
+    // Amap mixes strings and empty arrays for missing fields.
+    function amapText(v) {
+        if (Array.isArray(v)) {
+            return v.length > 0 ? String(v[0]) : "";
+        }
+        return v === undefined || v === null ? "" : String(v);
+    }
+
+    function isDaytime() {
+        const h = new Date().getHours();
+        return h >= 6 && h < 18;
+    }
+
     // The API uses numbers, numeric strings and "9999" for missing values.
     function toNumber(v) {
         if (typeof v === "number") {
@@ -284,6 +458,78 @@ Item {
         case "53": case "54": case "55": case "56": return "weather-fog";
         case "301": return "weather-showers";
         case "302": return "weather-snow";
+        default: return "weather-none-available";
+        }
+    }
+
+    // Amap weather text, mapped to the widget's condition strings.
+    function conditionForAmap(text) {
+        const s = String(text || "");
+        if (s === "" || s === "未知") {
+            return "";
+        }
+        if (s.indexOf("雨夹雪") >= 0 || s.indexOf("雨雪") >= 0 || s.indexOf("阵雨夹雪") >= 0) {
+            return "Rain and snow";
+        }
+        if (s.indexOf("冻雨") >= 0) {
+            return "Freezing rain";
+        }
+        if (s.indexOf("雷") >= 0) {
+            return s.indexOf("冰雹") >= 0 ? "Thunderstorm with hail" : "Thunderstorm";
+        }
+        if (s.indexOf("雪") >= 0) {
+            if (s.indexOf("暴雪") >= 0 || s.indexOf("大雪") >= 0) {
+                return "Heavy snow";
+            }
+            return s.indexOf("阵雪") >= 0 ? "Snow showers" : "Snow";
+        }
+        if (s.indexOf("雨") >= 0) {
+            if (s.indexOf("暴雨") >= 0 || s.indexOf("大雨") >= 0 || s.indexOf("极端") >= 0) {
+                return "Heavy rain";
+            }
+            return s.indexOf("阵雨") >= 0 ? "Showers" : "Rain";
+        }
+        if (s.indexOf("霾") >= 0) {
+            return "Haze";
+        }
+        if (s.indexOf("沙") >= 0 || s.indexOf("尘") >= 0) {
+            return "Dust";
+        }
+        if (s.indexOf("雾") >= 0) {
+            return "Fog";
+        }
+        if (s.indexOf("晴间多云") >= 0 || s.indexOf("多云") >= 0 || s.indexOf("少云") >= 0) {
+            return "Partly cloudy";
+        }
+        if (s.indexOf("阴") >= 0) {
+            return "Overcast";
+        }
+        if (s.indexOf("晴") >= 0) {
+            return "Clear";
+        }
+        if (s.indexOf("平静") >= 0) {
+            return "Clear";
+        }
+        if (s.indexOf("风") >= 0 || s.indexOf("龙卷") >= 0) {
+            return "Windy";
+        }
+        return s;
+    }
+
+    // Amap weather text, mapped to Breeze icon names.
+    function iconForAmap(text, night) {
+        switch (conditionForAmap(text)) {
+        case "Clear": return night ? "weather-clear-night" : "weather-clear";
+        case "Partly cloudy": return night ? "weather-few-clouds-night" : "weather-few-clouds";
+        case "Overcast": return "weather-overcast";
+        case "Showers": return "weather-showers-scattered";
+        case "Thunderstorm": case "Thunderstorm with hail": return "weather-storm";
+        case "Rain and snow": case "Freezing rain": return "weather-freezing-rain";
+        case "Rain": case "Heavy rain": return "weather-showers";
+        case "Snow showers": return "weather-snow-scattered";
+        case "Snow": case "Heavy snow": return "weather-snow";
+        case "Fog": case "Haze": case "Dust": return "weather-fog";
+        case "Windy": return "weather-few-clouds";
         default: return "weather-none-available";
         }
     }

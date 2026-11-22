@@ -291,3 +291,19 @@ msgstr "H/HH ώρες (24ωρο), h/hh ώρες (12ωρο), mm λεπτά, ss δ
 #: package/contents/ui/configGeneral.qml
 msgid "d/dd day, ddd/dddd weekday, M/MM/MMM/MMMM month, yy/yyyy year"
 msgstr "d/dd ημέρα, ddd/dddd ημέρα εβδομάδας, M/MM/MMM/MMMM μήνας, yy/yyyy έτος"
+
+#: package/contents/ui/configGeneral.qml
+msgid "Weather source:"
+msgstr "Πηγή καιρού:"
+
+#: package/contents/ui/configGeneral.qml
+msgid "Amap key:"
+msgstr "Κλειδί Amap:"
+
+#: package/contents/ui/configGeneral.qml
+msgid "Enter an Amap Web service key to search cities."
+msgstr "Εισαγάγετε ένα κλειδί υπηρεσίας ιστού Amap για αναζήτηση πόλεων."
+
+#: package/contents/ui/Weather.qml
+msgid "Windy"
+msgstr "Ανεμώδης"

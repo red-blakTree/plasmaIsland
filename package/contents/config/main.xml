@@ -10,6 +10,15 @@
         <entry name="stationId" type="String">
             <default></default>
         </entry>
+        <entry name="weatherProvider" type="String">
+            <default>nmc</default>
+        </entry>
+        <entry name="amapKey" type="String">
+            <default></default>
+        </entry>
+        <entry name="amapAdcode" type="String">
+            <default></default>
+        </entry>
         <entry name="language" type="String">
             <default></default>
         </entry>
