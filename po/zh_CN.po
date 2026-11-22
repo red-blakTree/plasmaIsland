@@ -263,3 +263,31 @@ msgstr "公里/小时"
 #: package/contents/ui/Weather.qml
 msgid "mph"
 msgstr "英里/小时"
+
+#: package/contents/ui/configGeneral.qml
+msgid "Custom"
+msgstr "自定义"
+
+#: package/contents/ui/configGeneral.qml
+msgid "Custom format:"
+msgstr "自定义格式："
+
+#: package/contents/ui/configGeneral.qml
+msgid "Preview: %1"
+msgstr "预览：%1"
+
+#: package/contents/ui/configGeneral.qml
+msgid "Background:"
+msgstr "背景："
+
+#: package/contents/ui/configGeneral.qml
+msgid "Transparent (text only, in the panel's colours)"
+msgstr "透明（仅文字，使用面板颜色）"
+
+#: package/contents/ui/configGeneral.qml
+msgid "H/HH hours (24h), h/hh hours (12h), mm minutes, ss seconds, AP am/pm"
+msgstr "H/HH 小时（24 小时制），h/hh 小时（12 小时制），mm 分钟，ss 秒，AP 上午/下午"
+
+#: package/contents/ui/configGeneral.qml
+msgid "d/dd day, ddd/dddd weekday, M/MM/MMM/MMMM month, yy/yyyy year"
+msgstr "d/dd 日，ddd/dddd 星期，M/MM/MMM/MMMM 月，yy/yyyy 年"
